@@ -1,0 +1,40 @@
+# Исключаем директории сборки и кеша Go
+/vendor/
+bin/
+pkg/
+build/
+
+# Исключаем скомпилированные бинарники
+*.exe
+*.out
+*.o
+*.a
+*.so
+*.dll
+/producer-test
+/purchase-worker
+
+# Исключаем временные файлы и логи
+*.log
+*.tmp
+*.test
+coverage.out
+*.swp
+
+# Исключаем конфигурационные файлы с секретами
+.env
+config/*.yaml
+config/*.yaml.example
+config/*.json
+secrets.*
+
+# Исключаем файлы IDE и системные файлы
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Исключаем git-метаданные
+.git
+.gitignore

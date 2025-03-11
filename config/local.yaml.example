@@ -1,0 +1,42 @@
+env: "local"
+
+connection_strings:
+  purchase_clickhouse:
+    host: "clickhouse"
+    port: 9000
+    database: "purchase_db"
+    username: "user"
+    password: "password"
+    max_execution_time: 60
+    compression_method: "lz4"
+    dial_timeout: "7s"
+    max_open_conns: 40
+    max_idle_conns: 20
+    conn_max_lifetime: "5m"
+    block_buffer_size: 10
+
+app:
+  graceful_shutdown_timeout: "15s"
+  service_config:
+    retry_save_batch_config:
+      attempts: 5
+      delay: "200ms"
+      max_delay: "3s"
+    batch_size: 100
+    flush_interval: "5s"
+    worker_count: 10
+
+prometheus:
+  host: "localhost"
+  port: 2021
+
+kafka:
+  brokers:
+    - "kafka:9093"
+  version: "2.8.0"
+  assignor: "range"
+  group_id: "worker-group"
+  topic: "worker-topic"
+  dlq_topic: "dlq-topic"
+  oldest: true
+  return_errors: true

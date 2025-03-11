@@ -1,0 +1,35 @@
+# Exclude compiled binary files
+*.exe
+*.out
+*.o
+*.a
+*.so
+*.dll
+/producer-test
+/purchase-worker
+
+# Exclude temporary files and logs
+*.log
+*.tmp
+*.test
+coverage.out
+*.swp
+
+# Exclude dependency directories and the Go build cache
+/vendor/
+bin/
+pkg/
+build/
+
+# Exclude the configuration files
+.env
+config/*.yaml
+config/*.json
+secrets.*
+
+# Exclude IDE files and system files
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
