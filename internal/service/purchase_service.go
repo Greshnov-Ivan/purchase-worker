@@ -72,93 +72,6 @@ func (s *PurchaseService) ProcessMessage(ctx context.Context, message []byte) {
 	s.addToBatch(ctx, purchase)
 }
 
-// flushBatch sends batch of purchases to repository through pool of workers
-func (s *PurchaseService) flushBatch(ctx context.Context, batch []domain.Purchase) {
-	s.wg.Add(1)
-	go func(ctx context.Context, batch []domain.Purchase) {
-		defer s.handleWorkerCleanup()
-
-		// block if the workers are busy
-		s.workerPool <- struct{}{}
-
-		if err := s.retryAndFilterFailedBatch(ctx, &batch); err != nil {
-			s.handleFinalBatchFailure(ctx, batch, err)
-		}
-	}(ctx, batch)
-}
-
-/*
-func (s *PurchaseService) flushBatch(ctx context.Context, batch []domain.Purchase) {
-	s.wg.Add(1)
-
-	go func() {
-		defer func() {
-			<-s.workerPool
-			s.wg.Done()
-		}()
-
-		// block if the workers are busy
-		s.workerPool <- struct{}{}
-
-		attemptNumber := 0
-		err := retry.Do(
-			func() error {
-				failedIDs, err := s.repo.SavePurchasesAndReturnFailedIDs(ctx, batch)
-				if err != nil {
-					s.log.Warn("batch save attempt failed",
-						slog.Int("attempt", attemptNumber),
-						slog.Int("failed_count", len(failedIDs)),
-						slog.Any("error", err))
-				}
-				// if some of the records have not been saved - filter them for the next attempt.
-				if len(failedIDs) > 0 {
-					s.log.Warn("unsaved record IDs",
-						slog.Int("attempt", attemptNumber),
-						slog.Any("IDs", failedIDs))
-					batch = filterByIDs(batch, failedIDs)
-				}
-
-				attemptNumber++
-				return err
-			},
-			retry.Attempts(s.retryConf.Attempts),
-			retry.Delay(s.retryConf.Delay),
-			retry.MaxDelay(s.retryConf.MaxDelay),
-			retry.RetryIf(func(err error) bool {
-				return reperrors.IsRetryableError(err)
-			}),
-		)
-
-		if err != nil {
-			s.log.Error("failed to save batch after retries", slog.Any("error", err))
-
-			// if there are unsaved recordings left after retry
-			if len(batch) > 0 {
-				s.log.Warn("some records failed permanently", slog.Int("count", len(batch)))
-
-				for _, purchase := range batch {
-					message, err := json.Marshal(purchase)
-					if err != nil {
-						s.log.Error("failed to marshal purchase for DLQ",
-							slog.Any("error", err),
-							slog.Any("purchase_id", purchase.PurchaseID),
-						)
-						continue
-					}
-					if err = s.dlqProducer.Send(ctx, message, err); err != nil {
-						s.log.Error("failed to send message to DLQ",
-							slog.Any("error", err),
-							slog.Any("purchase_id", purchase.PurchaseID),
-						)
-						continue
-					}
-				}
-			}
-		}
-	}()
-}
-*/
-
 // Shutdown stop service by writing remaining data
 func (s *PurchaseService) Shutdown() {
 	s.mu.Lock()
@@ -173,6 +86,21 @@ func (s *PurchaseService) Shutdown() {
 
 	// waiting completion all background goroutines
 	s.wg.Wait()
+}
+
+// flushBatch sends batch of purchases to repository through pool of workers
+func (s *PurchaseService) flushBatch(ctx context.Context, batch []domain.Purchase) {
+	s.wg.Add(1)
+	go func(ctx context.Context, batch []domain.Purchase) {
+		defer s.handleWorkerCleanup()
+
+		// block if the workers are busy
+		s.workerPool <- struct{}{}
+
+		if err := s.retryAndFilterFailedBatch(ctx, &batch); err != nil {
+			s.handleFinalBatchFailure(ctx, batch, err)
+		}
+	}(ctx, batch)
 }
 
 // addToBatch adds purchase to package and initiates package processing if package size is reached.
