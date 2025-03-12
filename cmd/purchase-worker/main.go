@@ -61,6 +61,8 @@ func main() {
 
 	// processing completion signals
 	done := make(chan os.Signal, 1)
+	// only Linux/macOS
+	//signal.Notify(done, os.Interrupt, unix.SIGINT, unix.SIGTERM)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
