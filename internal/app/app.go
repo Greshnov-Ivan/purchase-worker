@@ -122,6 +122,7 @@ func (w *Worker) Run() error {
 	return w.consumer.Consume(context.Background())
 }
 
+// TODO: consider using the cancellation context
 func (w *Worker) Shutdown(ctx context.Context) error {
 	w.log.Info("shutting down worker...")
 
